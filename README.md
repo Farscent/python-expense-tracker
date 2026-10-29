@@ -1,7 +1,5 @@
 # Python Expense Tracker
 
-[![Tests](https://github.com/Farscent/python-expense-tracker/actions/workflows/tests.yml/badge.svg)](https://github.com/Farscent/python-expense-tracker/actions/workflows/tests.yml)
-
 A command-line application for recording expenses in CSV and producing category and monthly summaries. It uses Python's standard library and Decimal arithmetic to preserve exact monetary totals.
 
 ## Features
