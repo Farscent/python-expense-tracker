@@ -1,0 +1,43 @@
+name: Project checks
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: "Python ${{ matrix.python }}"
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+          cache-dependency-path: requirements*.txt
+      - name: Install project dependencies
+        run: python -m pip install -r requirements.txt
+      - name: Run unit and integration tests
+        run: python -m unittest discover -s tests -v
+      - name: Run command-line example
+        run: |
+          mkdir -p outputs
+          python tracker.py --file data/sample_expenses.csv summary --month 2025-03 > outputs/sample-summary.txt
+          cat outputs/sample-summary.txt
+      - name: Record environment
+        run: python -m pip freeze > outputs/environment.txt
+      - name: Save generated reports and charts
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-expense-tracker-python-${{ matrix.python }}
+          path: outputs/
+          retention-days: 7
