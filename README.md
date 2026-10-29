@@ -1,41 +1,20 @@
-[![Tests](https://github.com/Farscent/python-expense-tracker/actions/workflows/tests.yml/badge.svg)](https://github.com/Farscent/python-expense-tracker/actions/workflows/tests.yml)
-
 # Python Expense Tracker
 
-A small command-line program for recording expenses in a CSV file and summarizing them by category and month. It uses **only Python's standard library**.
+[![Tests](https://github.com/Farscent/python-expense-tracker/actions/workflows/tests.yml/badge.svg)](https://github.com/Farscent/python-expense-tracker/actions/workflows/tests.yml)
 
-**Project question:** How can a simple Python program store records reliably and turn them into a useful monthly summary?
+A command-line application for recording expenses in CSV and producing category and monthly summaries. It uses Python's standard library and Decimal arithmetic to preserve exact monetary totals.
 
-## Learning objectives
+## Features
 
-- Organize logic into small functions.
-- Use a dataclass to represent a record.
-- Read and append CSV files with the csv module.
-- Validate dates and user input.
-- Use Decimal for exact decimal money calculations.
-- Build a command-line interface with argparse.
-- Test behavior using temporary files.
+- Append expense records with dates, categories, amounts, and notes.
+- List records chronologically and filter by month.
+- Summarize category totals and overall spending.
+- Validate input and existing CSV records before appending.
+- Store data in a readable format without a database or external services.
 
-## Run the project
+## Example output
 
-Install **Python 3.11, 3.12, or 3.13**, clone the project, and enter its folder:
-
-~~~bash
-git clone https://github.com/Farscent/python-expense-tracker.git
-cd python-expense-tracker
-python tracker.py --help
-~~~
-
-There are no packages to install. All examples use Indonesian rupiah (IDR); the program assumes one currency throughout.
-
-First, inspect the fictional sample data:
-
-~~~bash
-python tracker.py --file data/sample_expenses.csv list
-python tracker.py --file data/sample_expenses.csv summary --month 2025-03
-~~~
-
-The March sample contains five expenses totaling **IDR 143,000.00**:
+The included fictional sample contains five March expenses totaling **IDR 143,000.00**.
 
 | Category | March total (IDR) |
 |---|---:|
@@ -45,9 +24,28 @@ The March sample contains five expenses totaling **IDR 143,000.00**:
 | Transport | 25,000.00 |
 | **Total** | **143,000.00** |
 
-The April row is excluded by the March filter.
+The sample also contains an April record, which is excluded by the March filter.
 
-## Record your own expenses
+## Installation
+
+Requires **Python 3.11–3.13**. No third-party packages are needed.
+
+~~~bash
+git clone https://github.com/Farscent/python-expense-tracker.git
+cd python-expense-tracker
+python tracker.py --help
+~~~
+
+## Usage
+
+Inspect the sample records:
+
+~~~bash
+python tracker.py --file data/sample_expenses.csv list
+python tracker.py --file data/sample_expenses.csv summary --month 2025-03
+~~~
+
+Record and summarize expenses in the default local file:
 
 ~~~bash
 python tracker.py add --date 2025-03-01 --category food --amount 18000 --note "Coffee"
@@ -56,67 +54,53 @@ python tracker.py list --month 2025-03
 python tracker.py summary --month 2025-03
 ~~~
 
-If omitted, the date defaults to today. A successful add appends a new record to <code>data/expenses.csv</code>. Repeating an add command records another expense; it does not update the previous one.
+The default file is <code>data/expenses.csv</code>. The first add creates it if needed. Omitting the date uses today; omitting the month includes all records. Each add command appends a new expense.
 
-The <code>--file</code> option must appear **before** the command:
+A custom <code>--file</code> option must precede the command:
 
 ~~~bash
 python tracker.py --file data/my_expenses.csv summary
 ~~~
 
-Without <code>--month</code>, list and summary use all records. A nonexistent file is treated as an empty tracker, and the first add creates it.
-
-## How the code works
-
-| Function | Responsibility |
-|---|---|
-| make_expense | Validate and normalize one input record |
-| read_expenses | Read CSV records into Expense objects |
-| add_expense | Validate the existing file, then append a record |
-| select_month | Keep records belonging to a YYYY-MM period |
-| summarize | Sum amounts by category and overall |
-| main | Parse command-line arguments and display results |
-
-The storage format is intentionally readable:
+## Data format and validation
 
 ~~~csv
 date,category,amount,note
 2025-03-01,food,18000.00,Coffee
 ~~~
 
-The CSV module handles commas and quotation marks in notes. Dates must be real calendar dates in YYYY-MM-DD form. Categories are trimmed and converted to lowercase. Amounts must be positive, finite, no greater than one trillion, and expressible with at most two decimal places.
+Dates must be valid calendar dates in YYYY-MM-DD format. Categories are trimmed and lowercased. Amounts must be positive, finite, no greater than one trillion, and expressible with at most two decimal places. The CSV module preserves commas and quotes in notes.
 
-## Why Decimal?
+Amounts are parsed directly from text into Decimal, avoiding an intermediate float conversion. All records are assumed to use a single currency; the displayed currency is IDR.
 
-Binary floating-point numbers cannot represent every decimal fraction exactly. This project constructs Decimal directly from the user's text so that 0.10 plus 0.20 is exactly 0.30.
+## Implementation
 
-The input is never converted to float first. Formatting to two decimals is for display; it is not a replacement for accurate arithmetic.
+[tracker.py](tracker.py) separates validation, storage, filtering, aggregation, and command-line handling. An immutable Expense dataclass represents each record.
 
-## Tests
+| Function | Responsibility |
+|---|---|
+| make_expense | Validate and normalize input |
+| read_expenses | Load and validate CSV records |
+| add_expense | Append a validated record |
+| select_month | Filter by YYYY-MM |
+| summarize | Calculate category totals and overall spending |
+| main | Parse arguments and display results |
+
+## Limitations and data handling
+
+The application supports single-user local storage. It does not provide concurrent-write protection, encryption, refunds, currency conversion, bank integration, or automatic backups.
+
+A malformed CSV stops processing instead of being overwritten. Personal files under data are ignored by Git; only the fictional sample is included. Files stored outside that directory require their own version-control exclusions.
+
+## Validation
+
+Tests cover exact decimal totals, invalid input, quoted CSV fields, monthly filtering, file persistence, and malformed-file handling. File tests use temporary directories.
 
 ~~~bash
 python -m unittest discover -s tests -v
 ~~~
 
-The tests cover exact totals, invalid input, quoted CSV fields, month filtering, persistence, and the handling of a malformed file. Tests use temporary directories and do not edit your real expense file.
-
-## Privacy and limitations
-
-The bundled sample data is fictional. Personal files under data are ignored by Git by default; only the sample is included. Check the files you stage before publishing personal records, especially if you choose a storage path outside data.
-
-This is a single-user learning tool. It has no encryption, database, concurrent-write protection, bank connection, refunds, exchange-rate conversion, or automatic backups. Back up important records. If an existing CSV is malformed, the program stops instead of overwriting it.
-
-## Practice exercises
-
-1. Add a budget amount and calculate the remaining monthly budget.
-2. Add a highest-expense command.
-3. Export a category summary to another CSV file.
-4. Add expense IDs, then implement deletion without confusing repeated records.
-5. Explain when you would replace CSV storage with SQLite.
-
-**Questions to be able to answer:** Why separate parsing from storage? Why use Decimal? How would you keep two simultaneous writes from interfering?
-
-Read [tracker.py](tracker.py) from the validation functions down to main. You should be able to explain each step before adding a new feature.
+GitHub Actions runs the checks on Python 3.11 and 3.12. The project has also been verified on Windows with Python 3.13.
 
 ## References
 
@@ -124,9 +108,6 @@ Read [tracker.py](tracker.py) from the validation functions down to main. You sh
 - [Python: decimal](https://docs.python.org/3/library/decimal.html)
 - [Python: argparse](https://docs.python.org/3/library/argparse.html)
 
+## License
 
-## Validation and license
-
-The project has been tested locally on Windows with Python 3.13. GitHub Actions checks Python 3.11 and 3.12; see the status badge at the top for the current result.
-
-Code and the synthetic demonstration data are available under the [MIT License](LICENSE).
+Code and synthetic demonstration data are available under the [MIT License](LICENSE).
